@@ -1037,6 +1037,7 @@ function EditShopModal({ shop, onClose, onSaved }: {
   const [returnSummaryEnabled, setReturnSummaryEnabled] = useState(false);
   const [monthlySummaryEnabled, setMonthlySummaryEnabled] = useState(false);
   const [ledgerEnabled, setLedgerEnabled] = useState(false);
+  const [vatPercent, setVatPercent] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -1051,6 +1052,7 @@ function EditShopModal({ shop, onClose, onSaved }: {
       setReturnSummaryEnabled(d.features?.returnSummaryEnabled ?? false);
       setMonthlySummaryEnabled(d.features?.monthlySummaryEnabled ?? false);
       setLedgerEnabled(d.features?.ledgerEnabled ?? false);
+      setVatPercent(d.vatPercent != null ? String(d.vatPercent) : "");
     }).catch(() => {});
   }, [shop.id]);
 
@@ -1063,9 +1065,10 @@ function EditShopModal({ shop, onClose, onSaved }: {
     setError(""); setBusy(true);
     try {
       const features = { returnEnabled, returnSummaryEnabled, monthlySummaryEnabled, ledgerEnabled };
+      const vatPercentNum = Math.min(100, Math.max(0, parseFloat(vatPercent) || 0));
       const batch = writeBatch(db);
       batch.update(doc(db, "tenants", shop.id), { shopName: shopName.trim(), status, updatedAt: serverTimestamp() });
-      batch.update(doc(db, "shops", shop.id), { name: shopName.trim(), village: village.trim(), district: district.trim(), province: province.trim(), features, updatedAt: serverTimestamp() });
+      batch.update(doc(db, "shops", shop.id), { name: shopName.trim(), village: village.trim(), district: district.trim(), province: province.trim(), features, vatPercent: vatPercentNum, updatedAt: serverTimestamp() });
       await batch.commit();
       onSaved({ ...shop, shopName: shopName.trim(), status });
     } catch (err: unknown) {
@@ -1149,6 +1152,13 @@ function EditShopModal({ shop, onClose, onSaved }: {
                 province={province} district={district} village={village}
                 onProvinceChange={setProvince} onDistrictChange={setDistrict} onVillageChange={setVillage}
               />
+              <Field label="VAT (%)">
+                <input
+                  type="number" min="0" max="100" step="0.1"
+                  value={vatPercent} onChange={e => setVatPercent(e.target.value)}
+                  placeholder="0" style={inputStyle}
+                />
+              </Field>
               <Field label="ສະຖານະ">
                 <select value={status} onChange={e => setStatus(e.target.value as ShopTenant["status"])} style={inputStyle}>
                   <option value="active">ໃຊ້ງານ</option>
